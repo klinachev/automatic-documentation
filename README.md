@@ -1,0 +1,1 @@
+Результат генерации кода в src/main/java лежит в test/project
