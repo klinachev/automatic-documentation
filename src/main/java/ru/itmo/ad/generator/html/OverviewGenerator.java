@@ -2,9 +2,9 @@ package ru.itmo.ad.generator.html;
 
 import j2html.rendering.IndentedHtml;
 import j2html.tags.DomContent;
-import ru.itmo.ad.DocumentationApi;
+import ru.itmo.ad.FileWithPath;
+import ru.itmo.ad.calculation.ImportResolver;
 import ru.itmo.ad.generator.html.template.HtmlTemplateCreator;
-import ru.itmo.ad.parser.java.imports.ImportResolver;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -26,7 +26,7 @@ public class OverviewGenerator {
         this.htmlTemplateCreator = new HtmlTemplateCreator(root);
     }
 
-    public void generate(List<DocumentationApi.FileWithPath> files) throws IOException {
+    public void generate(List<FileWithPath> files) throws IOException {
         var path = root.resolve("Overview.html");
         DomContent[] summaries = {section(ul(
                 each(files, file -> li(

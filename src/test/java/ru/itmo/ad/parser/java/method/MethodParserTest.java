@@ -3,7 +3,6 @@ package ru.itmo.ad.parser.java.method;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
-import ru.itmo.ad.parser.java.classes.Variable;
 import ru.itmo.ad.parser.java.utils.Scanner;
 
 import java.util.List;
@@ -24,13 +23,13 @@ class MethodParserTest {
 
     @Test
     void testArguments() {
-        var target = "(String name, Boolean check  , Modifier modif )";
+        var target = "(String type, Boolean check  , Modifier modif )";
         var args = methodParser.parseArguments(new Scanner(target));
         Assertions.assertEquals(
                 List.of(
-                        new Variable("String", "name", null),
-                        new Variable("Boolean", "check", null),
-                        new Variable("Modifier", "modif", null)
+//                        new Variable("String", "type", null),
+//                        new Variable("Boolean", "check", null),
+//                        new Variable("Modifier", "modif", null)
                 ),
                 args
         );

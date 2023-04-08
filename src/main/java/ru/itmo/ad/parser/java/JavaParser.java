@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.stream.Collectors;
 
 public class JavaParser {
+
     private final PackageParser packageParser = new PackageParser();
     private final ImportsParser importsParser = new ImportsParser();
 
@@ -17,6 +18,7 @@ public class JavaParser {
     public JavaFile parse(Scanner scanner, String name) {
         try {
             System.out.println("Starting " + name);
+            var mainClassName = name.substring(0, name.length() - 5); // removes ".java"
             var packageName = packageParser.parse(scanner);
             var imports = importsParser.parse(scanner);
             var list = new ArrayList<ClassElement.Class>();
@@ -31,9 +33,12 @@ public class JavaParser {
                     imports.stream()
                             .filter(imp -> !imp.name().endsWith(".*"))
                             .collect(Collectors.toMap(
-                            imp -> imp.name().substring(imp.name().lastIndexOf('.')),
-                            it -> it
-                    )),
+                                    imp -> imp.name().substring(imp.name().lastIndexOf('.') + 1),
+                                    it -> it
+                            )),
+                    list.stream()
+                            .filter(classElement -> classElement.type().name().equals(mainClassName))
+                            .findFirst().orElseThrow(),
                     list
             );
         } catch (Throwable p) {

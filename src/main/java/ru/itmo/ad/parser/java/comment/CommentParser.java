@@ -2,15 +2,25 @@ package ru.itmo.ad.parser.java.comment;
 
 import ru.itmo.ad.parser.java.utils.Scanner;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class CommentParser {
 
-    // example
-    /*example 2 */
+    public List<String> parseAll(Scanner sc) {
+        var list = new ArrayList<String>();
+        var comment = parse(sc);
+        while (!comment.isEmpty()) {
+            list.addAll(comment);
+            comment = parse(sc);
+        }
+        return list;
+    }
 
+    // comment example
+    /* comment example 2 */
     /**
-     * example 3
+     * comment example 3
      */
     public List<String> parse(Scanner sc) {
         if (sc.takeString("//")) {
@@ -32,6 +42,7 @@ public class CommentParser {
                 }
             }
             var sb = new StringBuilder();
+            ch = sc.charAt(i++);
             for (; ; ++i) {
                 sc.loadOrThrow(i + 1);
                 if (ch == '*' && sc.charAt(i) == '/') {

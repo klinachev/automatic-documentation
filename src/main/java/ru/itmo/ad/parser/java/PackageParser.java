@@ -13,7 +13,7 @@ public class PackageParser {
             return "";
         }
         int pos = scanner.loadUntil(';');
-        if (pos == -1) {
+        if (pos == -1) { // if eof reached
             throw new ParseException();
         }
         String string = scanner.getString();

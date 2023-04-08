@@ -3,7 +3,7 @@ package ru.itmo.ad.parser.java.annotation;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import ru.itmo.ad.parser.java.object.DefaultObject;
-import ru.itmo.ad.parser.java.object.StringObject;
+import ru.itmo.ad.parser.java.object.Object;
 import ru.itmo.ad.parser.java.utils.Scanner;
 
 import java.util.Map;
@@ -41,7 +41,7 @@ class AnnotationParserTest {
         Assertions.assertEquals(
                 new Annotation("Deprecated",
                         Map.of("forRemoval", new DefaultObject("true"),
-                                "since", new StringObject("\"1.2.3\"")))
+                                "since", new Object.StringObject("\"1.2.3\"")))
                 , annotation);
     }
 
@@ -56,7 +56,7 @@ class AnnotationParserTest {
         Assertions.assertEquals(
                 new Annotation("Deprecated",
                         Map.of("forRemoval", new DefaultObject("true"),
-                                "since", new StringObject("\" n 1.2  .3 \"")))
+                                "since", new Object.StringObject("\" n 1.2  .3 \"")))
                 , annotation);
     }
 

@@ -1,67 +1,67 @@
 package ru.itmo.ad.parser.java.types;
 
 import ru.itmo.ad.parser.java.ParseException;
-import ru.itmo.ad.parser.java.object.ObjectParser;
 import ru.itmo.ad.parser.java.utils.Scanner;
 
-public class TypeParser {
-    private final ObjectParser objectParser = new ObjectParser();
+import java.util.ArrayList;
 
-    public String tryParse(Scanner sc) {
+public class TypeParser {
+    private int i = 0;
+
+    public TypeRef tryParse(Scanner sc) {
+        i = 0;
         sc.dropWhitespaces();
-        int i = tryParse(sc, 0);
-        if (i == -1) {
+        var res = tryParseType(sc);
+        if (res == null) {
             return null;
         }
-        var type = sc.getString().substring(0, i);
         sc.dropUntil(i);
-        return type;
+        return res;
     }
 
-    private int tryParse(Scanner sc, int i) {
-        i = skipWhitespaces(sc, i);
+    private TypeRef tryParseType(Scanner sc) {
+        int start = i;
+        skipWhitespaces(sc);
         sc.load(i + 1);
         if (!Character.isAlphabetic(sc.charAt(i))) {
-            return -1;
+            return null;
         }
         while (isTypePart(sc, i)) {
             sc.load(++i + 1);
         }
+        int end = i;
+        var list = new ArrayList<TypeRef>();
         if (sc.charAt(i) == '<') {
             i++;
-            i = skipWhitespaces(sc, i);
+            skipWhitespaces(sc);
             if (sc.charAt(i) != '>') {
-                i = tryParse(sc, i + 1);
-                i = skipWhitespaces(sc, i);
+                var ref = tryParseType(sc);
+                if (ref != null) {
+                    list.add(ref);
+                }
+                skipWhitespaces(sc);
                 while (sc.charAt(i) != '>') {
                     if (sc.charAt(i++) != ',') {
                         throw new ParseException();
                     }
-                    i = tryParse(sc, i + 1);
-                    i = skipWhitespaces(sc, i);
+                    ref = tryParseType(sc);
+                    list.add(ref);
+                    skipWhitespaces(sc);
                 }
             }
             i++;
         }
-        if (sc.charAt(i) == '[') {
-            int pos = objectParser.numberPos(sc, ++i);
-            if (pos != -1) {
-                i = pos;
-            }
-            if (sc.charAt(i) == ']') {
-                i++;
-            } else {
-                throw new ParseException();
-            }
+        boolean isArray = sc.charAt(i) == '[' && sc.charAt(i + 1) == ']';
+        if (isArray) {
+            i += 2;
         }
-        return i;
+        return new TypeRef(sc.getString().substring(start, end), list, isArray);
     }
 
-    private static int skipWhitespaces(Scanner sc, int i) {
+    private void skipWhitespaces(Scanner sc) {
         while (Character.isWhitespace(sc.charAt(i))) {
             sc.load(++i + 1);
         }
-        return i;
     }
 
     private static boolean isTypePart(Scanner sc, int i) {

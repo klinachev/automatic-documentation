@@ -10,6 +10,7 @@ public record JavaFile(
         String name,
         String packageName,
         Map<String, Import> imports,
+        ClassElement.Class mainClass,
         List<ClassElement.Class> classes
 ) {
 

@@ -8,6 +8,9 @@ public record Modifiers(
         ClassType classType,
         boolean isSealed
 ) {
+    public Modifiers(boolean isFinal) {
+        this(isFinal, false, Privacy.DEFAULT, false, null, false);
+    }
 
     public enum ClassType {
         RECORD("record"),

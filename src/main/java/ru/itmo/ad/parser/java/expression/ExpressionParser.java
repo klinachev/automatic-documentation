@@ -1,144 +1,156 @@
 package ru.itmo.ad.parser.java.expression;
 
 import ru.itmo.ad.parser.java.ParseException;
-import ru.itmo.ad.parser.java.classes.Variable;
 import ru.itmo.ad.parser.java.classes.VariableParser;
 import ru.itmo.ad.parser.java.comment.CommentParser;
+import ru.itmo.ad.parser.java.modifiers.ModifiersParser;
+import ru.itmo.ad.parser.java.object.DefaultObject;
 import ru.itmo.ad.parser.java.object.Object;
-import ru.itmo.ad.parser.java.object.*;
+import ru.itmo.ad.parser.java.object.ObjectParser;
 import ru.itmo.ad.parser.java.types.TypeParser;
+import ru.itmo.ad.parser.java.types.TypeRef;
 import ru.itmo.ad.parser.java.utils.Scanner;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public class ExpressionParser {
-
     private final TypeParser typeParser = new TypeParser();
+    private final ModifiersParser modifiersParser = new ModifiersParser();
     private final ObjectParser objectParser = new ObjectParser();
-    private final VariableParser variableParser = new VariableParser();
+    private final VariableParser variableParser = new VariableParser(typeParser);
     private final CommentParser commentParser = new CommentParser();
 
-//    public String parse(Scanner sc) {
-//        int i = sc.loadUntil(';');
-//        var result = sc.getString().substring(0, i);
-//        sc.dropUntil(i + 1);
-//        return result;
-//    }
-
-    public List<String> parseExpressions(Scanner sc) {
-        var list = new ArrayList<String>();
-        for (; !sc.takeString("}"); commentParser.parse(sc)) {
-            parseExpression(sc, list);
+    public List<Expression> parseExpressions(Scanner sc) {
+        var list = new ArrayList<Expression>();
+        while (!sc.takeString("}")) {
+            list.add(parseExpression(sc));
+            commentParser.parseAll(sc);
         }
         return list;
     }
 
-    private void parseExpression(Scanner sc, ArrayList<String> list) {
-        commentParser.parse(sc);
+    private Expression parseExpression(Scanner sc) {
+        List<String> comments = commentParser.parseAll(sc);
         if (sc.takeWord("throw")) {
-            list.add(parseStatement(sc).toString());
+            var expression = parseStatement(sc);
             sc.takeStringOrThrow(";");
+            return new Expression.Terminal("throw", expression, comments);
         } else if (sc.takeWord("return")) {
             if (sc.takeString(";")) {
-                return;
+                return new Expression.Terminal("return", null, comments);
             }
-            list.add(parseStatement(sc).toString());
+            var expression = parseStatement(sc);
             sc.takeStringOrThrow(";");
+            return new Expression.Terminal("return", expression, comments);
         } else if (sc.takeWord("if")) {
             sc.takeStringOrThrow("(");
-            parseStatement(sc);
+            var condition = parseStatement(sc);
             sc.takeStringOrThrow(")");
+            List<Expression> thenBranch;
             if (sc.takeString("{")) {
-                parseExpressions(sc);
+                thenBranch = parseExpressions(sc);
             } else {
-                parseExpression(sc, list);
+                thenBranch = List.of(parseExpression(sc));
             }
+            List<Expression> elseBranch = List.of();
             if (sc.takeWord("else")) {
                 if (sc.takeString("{")) {
-                    parseExpressions(sc);
+                    elseBranch = parseExpressions(sc);
                 } else {
-                    parseExpression(sc, list);
+                    elseBranch = List.of(parseExpression(sc));
                 }
             }
+            return new Expression.If(condition, thenBranch, elseBranch);
         } else if (sc.takeWord("while")) {
             sc.takeStringOrThrow("(");
-            parseStatement(sc);
+            Expression condition = parseStatement(sc);
             sc.takeStringOrThrow(")");
             sc.takeStringOrThrow("{");
-            parseExpressions(sc);
+            List<Expression> expressions = parseExpressions(sc);
+            return new Expression.Block("while", expressions);
+        } else if (sc.takeWord("do")) {
+            sc.takeStringOrThrow("{");
+            List<Expression> expressions = parseExpressions(sc);
+            sc.takeStringOrThrow("while");
+            sc.takeStringOrThrow("(");
+            Expression condition = parseStatement(sc);
+            sc.takeStringOrThrow(")");
+            sc.takeStringOrThrow(";");
+            return new Expression.Block("do", expressions);
         } else if (sc.takeWord("for")) {
             parseFor(sc);
             sc.takeStringOrThrow("{");
-            parseExpressions(sc);
+            List<Expression> expressions = parseExpressions(sc);
+            return new Expression.Block("for", expressions);
         } else if (sc.takeWord("try")) {
+            var resources = new ArrayList<Expression>();
             if (sc.takeString("(")) {
                 while (!sc.takeString(")")) {
-                    Variable variable = variableParser.parse(sc, null);
+                    var variable = variableParser.parse(sc, null);
                     sc.takeStringOrThrow("=");
-                    parseStatement(sc);
+                    Expression expression = parseStatement(sc);
+                    resources.add(expression);
                 }
             }
             sc.takeStringOrThrow("{");
-            parseExpressions(sc);
+            var body = parseExpressions(sc);
+            var catchBlock = new ArrayList<Expression>();
             while (sc.takeWord("catch")) {
                 sc.takeStringOrThrow("(");
-                variableParser.parse(sc, null);
+                var variable = variableParser.parse(sc, null);
+                catchBlock.add(variable);
                 sc.takeStringOrThrow(")");
                 sc.takeStringOrThrow("{");
-                parseExpressions(sc);
+                var expressions1 = parseExpressions(sc);
+                catchBlock.addAll(expressions1);
             }
             if (sc.takeString("finally")) {
                 sc.takeStringOrThrow("{");
-                parseExpressions(sc);
+                var expressions1 = parseExpressions(sc);
+                catchBlock.addAll(expressions1);
             }
+            return new Expression.Try(resources, body, catchBlock);
         } else if (sc.takeString("switch")) {
+            var list = new ArrayList<Expression>();
             sc.takeString("(");
-            parseStatement(sc);
+            var expression = parseStatement(sc);
+            list.add(expression);
             sc.takeStringOrThrow(")");
             sc.takeStringOrThrow("{");
+            commentParser.parseAll(sc);
             while (sc.takeString("case")) {
-                String type = typeParser.tryParse(sc);
+                var type = typeParser.tryParse(sc);
                 if (type != null) {
                     DefaultObject name = objectParser.tryTakeName(sc);
+                    list.add(new Expression.Variable(type, name.value(), null));
                 } else {
                     Object object = objectParser.tryTakeObject(sc);
                 }
-                if (sc.takeString("->")) {
-                    if (sc.takeString("{")) {
-                        parseExpressions(sc);
-                    } else {
-                        parseStatement(sc);
-                        sc.takeStringOrThrow(";");
-                    }
-                }
+                parseSwitchPart(sc, list);
+                commentParser.parseAll(sc);
             }
             if (sc.takeString("default")) {
-                if (sc.takeString("->")) {
-                    if (sc.takeString("{")) {
-                        parseExpressions(sc);
-                    } else {
-                        parseStatement(sc);
-                        sc.takeStringOrThrow(";");
-                    }
-                }
+                parseSwitchPart(sc, list);
             }
+            sc.takeStringOrThrow("}");
+            return new Expression.ExpressionList(list);
         } else {
+            var modifiers = modifiersParser.parse(sc);
             var start = typeParser.tryParse(sc);
-            isPostfixOperator(sc);
+            String postfixOperator = isPostfixOperator(sc);
             if (sc.takeString(";")) {
-                return;
+                return new Expression.Object(new DefaultObject(start.name()));
             }
             if (sc.takeString("(")) { // is function
-                List<Object> objects = parseFunctionCall(sc);
+                var functionCall = parseCall(sc, start, false);
                 sc.takeStringOrThrow(";");
-                return;
+                return functionCall;
             }
             if (isReassign(sc)) { // is reassign
-                var name = start;
-                parseStatement(sc);
+                Expression expression = parseStatement(sc);
                 sc.takeStringOrThrow(";");
-                return;
+                return new Expression.Reassign(start.name(), expression);
             }
             var variable = objectParser.tryTakeName(sc); // new variable
             if (variable == null) {
@@ -146,11 +158,23 @@ public class ExpressionParser {
             }
             if (!sc.takeString("=")) {
                 sc.takeStringOrThrow(";");
-                return;
+                return new Expression.Variable(start, variable.value(), modifiers);
             }
-            String expression = parseStatement(sc).toString();
+            var expression = parseStatement(sc);
             sc.takeStringOrThrow(";");
-            list.add(variable.value() + expression);
+            return new Expression.Assign(new Expression.Variable(start, variable.value(), null), expression);
+        }
+    }
+
+    private void parseSwitchPart(Scanner sc, ArrayList<Expression> list) {
+        if (sc.takeString("->")) {
+            if (sc.takeString("{")) {
+                var expressions = parseExpressions(sc);
+                list.addAll(expressions);
+            } else {
+                var expression1 = parseExpression(sc);
+                list.add(expression1);
+            }
         }
     }
 
@@ -183,51 +207,60 @@ public class ExpressionParser {
         }
     }
 
-    public Object parseStatement(Scanner sc) {
-        isPrefixOperator(sc);
-        Object object;
+    public Expression parseStatement(Scanner sc) {
+        Expression expression = null;
+        if (sc.takeString("(")) {
+            expression = parseStatement(sc);
+            sc.takeStringOrThrow(")");
+        }
+        String prefixOperator = isPrefixOperator(sc);
         if (sc.takeString("{")) {
-            object = tryTakeArray(sc);
+            return tryTakeArray(sc);
         } else {
             boolean constructor = sc.takeString("new ");
-            String value = typeParser.tryParse(sc);
-            object = new DefaultObject(value);
+            var value = typeParser.tryParse(sc);
+            if (sc.takeString("[")) {
+                parseStatement(sc);
+                sc.takeStringOrThrow("]");
+            }
             if (constructor) {
                 if (sc.takeString("(")) { // if not array
-                    object = new FunctionCall(object, parseFunctionCall(sc), true);
+                    expression = parseCall(sc, value, true);
                 } else if (sc.takeString("{")) { // if array
-                    tryTakeArray(sc);
+                    return tryTakeArray(sc);
                 }
             } else {
                 if (value != null) { // function call
-                    object = new DefaultObject(value);
                     if (sc.takeString("(")) {
-                        object = new FunctionCall(object, parseFunctionCall(sc), false);
+                        expression = parseCall(sc, value, false);
+                    } else {
+                        expression = new Expression.Name(value.name());
                     }
                 } else {
-                    object = objectParser.tryTakeObject(sc);
+                    expression = new Expression.Object(objectParser.tryTakeObject(sc));
                 }
             }
         }
         sc.loadWhileWhitespaces();
         var operator = isBinaryOperator(sc);
         if (operator != null) {
-            object = new Operator(object, parseStatement(sc), "" + operator);
+            expression = new Expression.BinaryOperator(operator, expression, parseStatement(sc));
         }
         if (sc.takeString("?")) {
             var ifTrue = parseStatement(sc);
             sc.takeStringOrThrow(":");
             var ifFalse = parseStatement(sc);
+            return new Expression.BinaryOperator("?", ifTrue, ifFalse);
         }
         if (sc.takeString("instanceof")) {
-            var type = objectParser.tryTakeName(sc);
+            var type = typeParser.tryParse(sc);
             var name = objectParser.tryTakeName(sc);
             if (type == null) {
                 throw new ParseException("type expected");
             }
         }
         isPostfixOperator(sc);
-        return object;
+        return expression;
     }
 
     public String firstFound(Scanner sc, List<String> strings) {
@@ -252,8 +285,8 @@ public class ExpressionParser {
                 ">", "==", "!=", "<=", ">=", "||", "&&"));
     }
 
-    public List<Object> parseFunctionCall(Scanner sc) {
-        var args = new ArrayList<Object>();
+    public Expression.Statement parseCall(Scanner sc, TypeRef name, boolean constructor) {
+        var args = new ArrayList<Expression>();
         if (!sc.takeString(")")) {
             args.add(parseStatement(sc));
             while (!sc.takeString(")")) {
@@ -261,23 +294,36 @@ public class ExpressionParser {
                 args.add(parseStatement(sc));
             }
         }
+        Expression.Statement result;
+        if (constructor) {
+            result = new Expression.Constructor(name, args);
+        } else {
+            int i = name.name().lastIndexOf(".");
+            if (i != -1) {
+                var receiver = new Expression.Name(name.name().substring(0, i));
+                name = new TypeRef(name.name().substring(i + 1), name.templates(), false);
+                result = new Expression.FunctionCall(receiver, name, args);
+            } else {
+                result = new Expression.FunctionCall(null, name, args);
+            }
+        }
         if (sc.takeString(".")) {
             var functionName = typeParser.tryParse(sc);
             sc.takeString("(");
-            parseFunctionCall(sc);
-//            object = new FunctionCall(object, parseFunctionCall(sc), constructor);
+            var func = (Expression.FunctionCall) parseCall(sc, functionName, false);
+            result = new Expression.FunctionCall(result, func.name(), func.args());
         }
-        return args;
+        return result;
     }
 
-    public ArrayObject tryTakeArray(Scanner sc) {
+    public Expression.ArrayObject tryTakeArray(Scanner sc) {
         sc.loadWhileWhitespaces();
-        var list = new ArrayList<Object>();
+        var list = new ArrayList<Expression>();
         while (!sc.takeString("}")) {
             var object = parseStatement(sc);
             list.add(object);
             sc.takeString(",");
         }
-        return new ArrayObject(list);
+        return new Expression.ArrayObject(list);
     }
 }

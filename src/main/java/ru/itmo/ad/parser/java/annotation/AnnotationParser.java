@@ -12,7 +12,6 @@ import java.util.Map;
 import static ru.itmo.ad.parser.java.annotation.Annotation.DEFAULT_ARG;
 
 public class AnnotationParser {
-
     private final ObjectParser objectParser = new ObjectParser();
 
     public Annotation parse(Scanner scanner) {
@@ -43,12 +42,12 @@ public class AnnotationParser {
                 scanner.takeStringOrThrow(",");
                 var key = objectParser.tryTakeName(scanner);
                 if (key == null) {
-                    throw new ParseException("Argument name expected");
+                    throw new ParseException("Argument type expected");
                 }
                 scanner.takeStringOrThrow("=");
                 Object value1 = objectParser.tryTakeObject(scanner);
                 if (value1 == null) {
-                    throw new ParseException("Argument name expected");
+                    throw new ParseException("Argument type expected");
                 }
                 map.put(key.value(), value1);
             }

@@ -1,13 +1,14 @@
 package ru.itmo.ad.parser.java.object;
 
 import ru.itmo.ad.parser.java.ParseException;
+import ru.itmo.ad.parser.java.expression.Expression;
 import ru.itmo.ad.parser.java.utils.Scanner;
 
 import java.util.ArrayList;
 
 public class ObjectParser {
 
-    public StringObject tryTakeJavaString(Scanner sc) {
+    public Object.StringObject tryTakeJavaString(Scanner sc) {
         sc.loadWhileWhitespaces();
         if (!sc.takeString("\"")) {
             return null;
@@ -18,7 +19,7 @@ public class ObjectParser {
             int load = sc.load(i + 1);
             if (sc.charAt(i) == '"' && ch != '\\') {
                 sc.dropUntil(i + 1);
-                return new StringObject(sb.append('"').toString());
+                return new Object.StringObject(sb.append('"').toString());
             }
             ch = sc.charAt(i);
             if (ch == '\\') {
@@ -28,7 +29,7 @@ public class ObjectParser {
         }
     }
 
-    public CharObject tryTakeChar(Scanner sc) {
+    public Object.CharObject tryTakeChar(Scanner sc) {
         sc.loadWhileWhitespaces();
         if (!sc.takeString("'")) {
             return null;
@@ -38,13 +39,13 @@ public class ObjectParser {
         if (c == '\\') {
             c = sc.charAt(1);
             sc.dropUntil(3);
-            return new CharObject(c);
+            return new Object.CharObject(c);
         }
         if (pos != 1) {
             throw new ParseException("Character expected");
         }
         sc.dropUntil(2);
-        return new CharObject(c);
+        return new Object.CharObject(c);
     }
 
     public int numberPos(Scanner sc, int i) {
@@ -60,14 +61,14 @@ public class ObjectParser {
         return i;
     }
 
-    public NumberObject tryTakeNumber(Scanner sc) {
+    public Object.NumberObject tryTakeNumber(Scanner sc) {
         var pos = numberPos(sc, 0);
         if (pos == -1) {
             return null;
         }
         var number = sc.getString().substring(0, pos);
         sc.dropUntil(pos);
-        return new NumberObject(number);
+        return new Object.NumberObject(number);
     }
 
     public DefaultObject tryTakeName(Scanner sc) {
@@ -87,24 +88,26 @@ public class ObjectParser {
         sc.dropUntil(i);
         return new DefaultObject(number);
     }
-    public ArrayObject tryTakeArray(Scanner sc) {
+
+    public Expression.ArrayObject tryTakeArray(Scanner sc) {
         sc.loadWhileWhitespaces();
         if (!sc.takeString("{")) {
             return null;
         }
-        var list = new ArrayList<Object>();
+        var list = new ArrayList<Expression>();
         while (!sc.takeString("}")) {
             var object = tryTakeObject(sc);
-            list.add(object);
+            list.add(new Expression.Object(object));
             sc.takeString(",");
         }
-        return new ArrayObject(list);
+        return new Expression.ArrayObject(list);
     }
+
     public Object tryTakeObject(Scanner sc) {
-        var array = tryTakeArray(sc);
-        if (array != null) {
-            return array;
-        }
+//        var array = tryTakeArray(sc);
+//        if (array != null) {
+//            return array;
+//        }
         var number = tryTakeNumber(sc);
         if (number != null) {
             return number;

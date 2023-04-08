@@ -3,7 +3,6 @@ package ru.itmo.ad;
 import ru.itmo.ad.arguments.DocumentationArguments;
 import ru.itmo.ad.generator.css.StylesheetCreator;
 import ru.itmo.ad.generator.html.FilesGenerator;
-import ru.itmo.ad.parser.java.JavaFile;
 import ru.itmo.ad.parser.java.JavaParser;
 import ru.itmo.ad.parser.java.ParseException;
 import ru.itmo.ad.parser.java.utils.Scanner;
@@ -73,6 +72,4 @@ public class DocumentationApi {
         }
     }
 
-    public record FileWithPath(JavaFile javaFile, Path source, Path destination) {
-    }
 }

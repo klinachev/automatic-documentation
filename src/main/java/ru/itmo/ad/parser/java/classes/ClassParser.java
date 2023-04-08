@@ -4,6 +4,7 @@ import ru.itmo.ad.parser.java.ParseException;
 import ru.itmo.ad.parser.java.annotation.Annotation;
 import ru.itmo.ad.parser.java.annotation.AnnotationParser;
 import ru.itmo.ad.parser.java.comment.CommentParser;
+import ru.itmo.ad.parser.java.expression.Expression;
 import ru.itmo.ad.parser.java.expression.ExpressionParser;
 import ru.itmo.ad.parser.java.method.MethodParser;
 import ru.itmo.ad.parser.java.modifiers.Modifiers;
@@ -11,22 +12,23 @@ import ru.itmo.ad.parser.java.modifiers.ModifiersParser;
 import ru.itmo.ad.parser.java.object.DefaultObject;
 import ru.itmo.ad.parser.java.object.ObjectParser;
 import ru.itmo.ad.parser.java.types.TypeParser;
+import ru.itmo.ad.parser.java.types.TypeRef;
 import ru.itmo.ad.parser.java.utils.Scanner;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 
 public class ClassParser {
-
     private final MethodParser methodParser = new MethodParser();
+    private final ExpressionParser expressionParser = new ExpressionParser();
 
     private final TypeParser typeParser = new TypeParser();
 
     private final ModifiersParser modifiersParser = new ModifiersParser();
 
     private final ObjectParser objectParser = new ObjectParser();
-    private final ExpressionParser expressionParser = new ExpressionParser();
 
     private final CommentParser commentParser = new CommentParser();
 
@@ -45,9 +47,9 @@ public class ClassParser {
     }
 
     private void parseEnumValue(Scanner sc) {
-        DefaultObject name = objectParser.tryTakeName(sc);
+        var name = typeParser.tryParse(sc);
         if (sc.takeString("(")) {
-            expressionParser.parseFunctionCall(sc);
+            expressionParser.parseCall(sc, name, true);
         }
     }
 
@@ -68,32 +70,44 @@ public class ClassParser {
             switch (classElement) {
                 case ClassElement.Field f -> classModel.fields().add(f);
                 case ClassElement.Class aClass -> classModel.classes().add(aClass);
-                case ClassElement.Method method -> classModel.methods().add(method);
+                case ClassElement.Method method -> {
+                    if (Objects.equals(method.name(), method.type().name())) {
+                        classModel.constructors().add(method);
+                    } else {
+                        classModel.methods().add(method);
+                    }
+                }
             }
         }
         return classModel;
     }
 
     private ClassElement.Class parseName(Scanner sc, Modifiers modifiers) {
-        String name = typeParser.tryParse(sc);
+        var name = typeParser.tryParse(sc);
         if (modifiers.classType() == Modifiers.ClassType.RECORD) {
-            List<Variable> args = methodParser.parseArguments(sc);
+            var args = methodParser.parseArguments(sc);
         }
-        if (sc.takeString("extends")) {
-            String type = typeParser.tryParse(sc);
+        TypeRef extend = null;
+        if (sc.takeString("extends ")) {
+            extend = typeParser.tryParse(sc);
         }
-        if (sc.takeString("implements")) {
+        List<TypeRef> impls = new ArrayList<>();
+        if (sc.takeString("implements ")) {
             do {
-                String type = typeParser.tryParse(sc);
+                var type = typeParser.tryParse(sc);
+                impls.add(type);
             } while (sc.takeString(","));
         }
-        if (sc.takeString("permits")) {
+        List<TypeRef> permits = new ArrayList<>();
+        if (sc.takeString("permits ")) {
             do {
-                String type = typeParser.tryParse(sc);
+                var type = typeParser.tryParse(sc);
+                permits.add(type);
             } while (sc.takeString(","));
         }
         sc.takeStringOrThrow("{");
-        return new ClassElement.Class(name, modifiers);
+        var inheritance = new ClassElement.Class.Inheritance(extend, impls, permits);
+        return new ClassElement.Class(name, modifiers, inheritance);
     }
 
     private CommentsAndAnnotations beforeBlock(Scanner sc) {
@@ -126,7 +140,7 @@ public class ClassParser {
             addCommentsAndAnnotations(classModel, commentsAndAnnotations);
             return classModel;
         }
-        int pos = sc.loadUntil(Set.of('=', '(', ';'));
+        int pos = sc.loadUntilAnyChar(Set.of('=', '(', ';'));
         switch (sc.charAt(pos)) {
             case '(' -> {
                 var method = methodParser.parse(sc, modifiers);
@@ -137,7 +151,7 @@ public class ClassParser {
                 var type = typeParser.tryParse(sc);
                 var name = objectParser.tryTakeName(sc);
                 sc.takeStringOrThrow(";");
-                ClassElement.Field field = new ClassElement.Field(new Variable(type, name.value(), modifiers));
+                ClassElement.Field field = new ClassElement.Field(new Expression.Variable(type, name.value(), modifiers));
                 addCommentsAndAnnotations(field, commentsAndAnnotations);
                 return field;
             }
@@ -147,7 +161,7 @@ public class ClassParser {
                 sc.takeStringOrThrow("=");
                 expressionParser.parseStatement(sc);
                 sc.takeStringOrThrow(";");
-                ClassElement.Field field = new ClassElement.Field(new Variable(type, name.value(), modifiers));
+                ClassElement.Field field = new ClassElement.Field(new Expression.Variable(type, name.value(), modifiers));
                 addCommentsAndAnnotations(field, commentsAndAnnotations);
                 return field;
             }

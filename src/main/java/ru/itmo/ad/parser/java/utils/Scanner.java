@@ -64,14 +64,14 @@ public class Scanner {
     }
 
     public int loadUntilSpace() {
-        return loadUntilSpaceOrChar(Set.of(' '));
+        return loadUntilSpaceOrChars(Set.of(' '));
     }
 
     public int loadUntilSpaceOrChar(char ch) {
-        return loadUntilSpaceOrChar(Set.of(ch));
+        return loadUntilSpaceOrChars(Set.of(ch));
     }
 
-    public int loadUntilSpaceOrChar(Collection<Character> characters) {
+    public int loadUntilSpaceOrChars(Collection<Character> characters) {
         loadWhileWhitespaces();
         return loadUntilSpaceOrChar(0, characters);
     }
@@ -115,7 +115,7 @@ public class Scanner {
         return loadUntil(0, Set.of('\n', '\r'));
     }
 
-    public int loadUntil(Collection<Character> characters) {
+    public int loadUntilAnyChar(Collection<Character> characters) {
         return loadUntil(0, characters);
     }
 
@@ -134,8 +134,10 @@ public class Scanner {
 
     public void dropWhitespaces() {
         int i = 0;
+        load(1);
         while (Character.isWhitespace(string.charAt(i))) {
             i++;
+            load(i + 1);
         }
         string = string.substring(i);
     }
@@ -172,7 +174,7 @@ public class Scanner {
     }
 
     public String takeStringUntil(Collection<Character> characters) {
-        int pos = loadUntilSpaceOrChar(characters);
+        int pos = loadUntilSpaceOrChars(characters);
         if (pos == -1) {
             return null;
         }
@@ -183,7 +185,7 @@ public class Scanner {
 
     public boolean takeWord(String s) {
         loadWhileWhitespaces();
-        load(s.length());
+        load(s.length() + 1);
         boolean found = string.startsWith(s);
         if (Character.isAlphabetic(string.charAt(s.length()))) {
             return false;
@@ -193,6 +195,7 @@ public class Scanner {
         }
         return found;
     }
+
     public boolean takeString(String s) {
         loadWhileWhitespaces();
         load(s.length());

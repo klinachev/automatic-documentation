@@ -11,7 +11,6 @@ class CommentParserTest {
 
     private final CommentParser commentParser = new CommentParser();
 
-
     @Test
     void testNoComments() {
         var target = "class A {}";

@@ -38,7 +38,6 @@ public class HtmlTemplateCreator {
                 ).withClass("flex-box")).withClass("class-declaration-page"));
     }
 
-
     private static HeaderTag overviewHref(Path overview) {
         return TagCreator.header(nav(div(ul(
                         li(a("Overview").withHref(overview.toString()))

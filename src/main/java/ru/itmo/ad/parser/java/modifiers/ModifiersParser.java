@@ -1,8 +1,11 @@
 package ru.itmo.ad.parser.java.modifiers;
 
+import ru.itmo.ad.parser.java.object.DefaultObject;
+import ru.itmo.ad.parser.java.object.ObjectParser;
 import ru.itmo.ad.parser.java.utils.Scanner;
 
 public class ModifiersParser {
+    private final ObjectParser objectParser = new ObjectParser();
 
     public Modifiers parse(Scanner sc) {
         var privacy = Modifiers.Privacy.DEFAULT;
@@ -15,6 +18,12 @@ public class ModifiersParser {
             int pos = sc.loadUntilSpace();
             if (pos == -1) {
                 return null;
+            }
+            if (sc.takeString("<")) {
+                while (!sc.takeString(">")) {
+                    DefaultObject name = objectParser.tryTakeName(sc);
+                    sc.takeString(",");
+                }
             }
             var s = sc.getString().substring(0, pos);
             var newPrivacy = getPrivacy(s);
