@@ -1,6 +1,7 @@
 package ru.itmo.ad.parser.java.classes;
 
 import ru.itmo.ad.parser.java.ParseException;
+import ru.itmo.ad.parser.java.expression.Expression;
 import ru.itmo.ad.parser.java.modifiers.Modifiers;
 import ru.itmo.ad.parser.java.modifiers.ModifiersParser;
 import ru.itmo.ad.parser.java.object.DefaultObject;
@@ -13,10 +14,14 @@ public class VariableParser {
 
     private final ObjectParser objectParser = new ObjectParser();
 
-    private final TypeParser typeParser = new TypeParser();
+    private final TypeParser typeParser;
 
-    public Variable parse(Scanner sc, Modifiers modifiers) {
-        String type = typeParser.tryParse(sc);
+    public VariableParser(TypeParser typeParser) {
+        this.typeParser = typeParser;
+    }
+
+    public Expression.Variable parse(Scanner sc, Modifiers modifiers) {
+        var type = typeParser.tryParse(sc);
         if (type == null) {
             return null;
         }
@@ -24,6 +29,6 @@ public class VariableParser {
         if (name == null) {
             throw new ParseException("Name expected");
         }
-        return new Variable(type, name.value(), modifiers);
+        return new Expression.Variable(type, name.value(), modifiers);
     }
 }
