@@ -15,6 +15,9 @@ public record JavaFile(
 ) {
 
     public String fullName() {
+        if (packageName.isEmpty()) {
+            return name;
+        }
         return packageName + "." + name;
     }
 }
