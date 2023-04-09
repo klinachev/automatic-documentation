@@ -1,1 +1,1 @@
-Результат генерации кода в src/main/java лежит в test/project
+Результат генерации кода в example/src лежит в example/result
