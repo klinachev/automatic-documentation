@@ -1,0 +1,79 @@
+<html>
+    <head>
+        <title>
+            ImageProducer.java
+        </title>
+        <link rel="stylesheet" type="text/css" href="stylesheet.css" title="Style">
+    </head>
+    <body class="class-declaration-page">
+        <div class="flex-box">
+            <header class="flex-header">
+                <nav>
+                    <div class="top-nav">
+                        <ul class="nav-list">
+                            <li>
+                                <a href="Overview.html">
+                                    Overview
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                </nav>
+            </header>
+            <div class="flex-content">
+                <main>
+                    <div class="header">
+                        <div class="sub-title">
+                            <span class="module-label-in-type">
+                                Package
+                            </span>
+                            <a href="">
+                                
+                            </a>
+                        </div>
+                        <h1 class="title">
+                            Class ImageProducer
+                        </h1>
+                    </div>
+                    <section class="class-description">
+                        <hr>
+                        <div class="type-signature">
+                            <span class="modifiers">
+                                public class
+                            </span>
+                            <span class="element-type">
+                                ImageProducer
+                            </span>
+                            <span class="extends-implements">
+                            </span>
+                        </div>
+                        <div class="block">
+                            
+                        </div>
+                        <section class="summary">
+                        </section>
+                        <section class="details">
+                            <ul class="details-list">
+                                <li>
+                                    <section class="method-details">
+                                        <h2>
+                                            Method Details
+                                        </h2>
+                                        <ul class="member-list">
+                                            <li>
+                                                <section class="detail"><h3>getImage</h3><div class="member-signature"><span class="modifiers">public </span><span class="return-type"><a href="Image.html">Image</a></span>&nbsp;<span class="element-type">getImage</span><wbr><span class="parameters">(<a>URL</a>&nbsp;url, <a>String</a>&nbsp;name)</span></div><div class="block"> Returns an Image object that can then be painted on the screen.  The url argument must specify an absolute URL. The name  argument is a specifier that is relative to the url argument.  <p>  This method always returns immediately, whether or not the  image exists. When this applet attempts to draw the image on  the screen, the data will be loaded. The graphics primitives  that draw the image will incrementally paint on the screen.<p>   </div><dl class="notes"><dt>Parameters:</dt><dd><code> url</code> -   an absolute URL giving the base location of the image </dd><dd><code> name</code> -  the location of the image, relative to the url argument </dd><dt>See Also</dt><a href="Image.html">Image</a><dt>Returns:</dt><dd><a href="Image.html">Image</a> -  the image at the specified URL</dd><dd><a>null</a> -  if url is invalid</dd></dl></section>
+                                            </li>
+                                            <li>
+                                                <section class="detail"><h3>getImageWithValidate</h3><div class="member-signature"><span class="modifiers">public </span><span class="return-type"><a href="Image.html">Image</a></span>&nbsp;<span class="element-type">getImageWithValidate</span><wbr><span class="parameters">(<a>URL</a>&nbsp;url, <a>String</a>&nbsp;name)</span></div><div class="block"> @param  url  an absolute URL giving the base location of the image  </div><dl class="notes"><dt>Parameters:</dt><dd><code> name</code> -  the location of the image, relative to the url argument </dd><dt>See Also</dt><a href="Image.html">Image</a><dt>Returns:</dt><dd><a href="Image.html">Image</a> -  if name is null  if url is null  the image at the specified URL</dd><dd><a>null</a> -  if url is invalid</dd><dt>Throws:</dt><dd><a>IllegalArgumentException</a> -  if name is null or  if url is null</dd></dl></section>
+                                            </li>
+                                        </ul>
+                                    </section>
+                                </li>
+                            </ul>
+                        </section>
+                    </section>
+                </main>
+            </div>
+        </div>
+    </body>
+</html>
