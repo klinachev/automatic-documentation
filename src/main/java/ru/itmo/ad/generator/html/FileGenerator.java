@@ -103,38 +103,81 @@ public class FileGenerator {
     private SectionTag methodDetails(FileWithPath file, ClassElement.Class clazz) {
         return section(
                 h2("Method Details"),
-                ul(each(clazz.methods(), method ->
-                        li(onSameLine(section(
-                                h3(method.name()),
-                                div(
-                                        modifiers(method.modifiers()),
-                                        span(
-                                                resolveHref(file, method.type())
-                                        ).withClass("return-type"),
-                                        rawHtml("&nbsp;"),
-                                        elementName(method.name()),
-                                        wbr(),
-                                        span(text("("),
-                                                rawHtml(method.arguments().stream()
-                                                        .map(arg -> each(resolveHref(file, arg.type()), rawHtml("&nbsp;" + arg.name())).toString())
-                                                        .collect(Collectors.joining(", "))),
-                                                text(")")
-                                        ).withClass("parameters"),
-                                        throwsBlock(file, method)
-                                ).withClass("member-signature"),
-                                div(
-                                        rawHtml(String.join("<br>", method.comments()))
-                                ).withClass("block"),
-                                dl(
-                                        throwsInfo(file, method)
-                                ).withClass("notes")
-                        ).withClass("detail")))
+                ul(each(clazz.methods().stream().filter(method -> method.modifiers().privacy() == Modifiers.Privacy.PUBLIC).toList(),
+                        method ->
+                                li(onSameLine(section(
+                                        h3(method.name()),
+                                        div(
+                                                modifiers(method.modifiers()),
+                                                span(
+                                                        resolveHref(file, method.type())
+                                                ).withClass("return-type"),
+                                                rawHtml("&nbsp;"),
+                                                elementName(method.name()),
+                                                wbr(),
+                                                span(text("("),
+                                                        rawHtml(method.arguments().stream()
+                                                                .map(arg -> each(resolveHref(file, arg.type()), rawHtml("&nbsp;" + arg.name())).toString())
+                                                                .collect(Collectors.joining(", "))),
+                                                        text(")")
+                                                ).withClass("parameters"),
+                                                throwsBlock(file, method)
+                                        ).withClass("member-signature"),
+                                        div(
+                                                commentBlock(method.comments())
+                                        ).withClass("block"),
+                                        dl(
+                                                paramsInfo(file, method.comments()),
+                                                returnsInfo(file, method),
+                                                throwsInfo(file, method)
+                                        ).withClass("notes")
+                                ).withClass("detail")))
                 )).withClass("member-list")
         ).withClass("method-details");
     }
 
+    private DomContent commentBlock(List<String> comments) {
+        return rawHtml(String.join(" ", comments.stream()
+                .filter(comment -> !comment.startsWith("@")).toList()));
+    }
+
+
     private DomContent onSameLine(DomContent... domContents) {
         return rawHtml(each(domContents).render());
+    }
+
+    private DomContent paramsInfo(FileWithPath file, List<String> comments) {
+        List<String> comms = comments.stream()
+                .filter(comment -> comment.startsWith("@")).toList();
+        if (comms.isEmpty()) {
+            return rawHtml("");
+        }
+        return each(dt("Parameters:"), each(comms, comment -> {
+            if (comment.startsWith("@param ")) {
+                var str = comment.substring("@param ".length());
+                int i = 1;
+                while (!Character.isWhitespace(str.charAt(i))) {
+                    i++;
+                }
+                String name = str.substring(0, i);
+                String string = str.substring(i);
+                return dd(code(name), rawHtml(" - " + string));
+            } else if (comment.startsWith("@see ")) {
+                return each(dt("See Also"), resolveHref(file,
+                        new TypeRef(comment.substring("@see ".length(), comment.length() - 1), List.of(), false)));
+            }
+            return rawHtml(comment);
+        }));
+    }
+
+
+    private DomContent returnsInfo(FileWithPath file, ClassElement.Method method) {
+        if (method.returnsInfo().size() < 2) {
+            return rawHtml("");
+        }
+        return each(dt("Returns:"), each(method.returnsInfo(), thr ->
+                dd(resolveHref(file, thr.getKey()), (rawHtml((!thr.getValue().isEmpty() ? " - " : "")
+                        + String.join(" ", thr.getValue()))))));
     }
 
     private DomContent throwsInfo(FileWithPath file, ClassElement.Method method) {
@@ -142,7 +185,8 @@ public class FileGenerator {
             return rawHtml("");
         }
         return each(dt("Throws:"), each(method.throwsInfo(), thr ->
-                dd(resolveHref(file, thr.type()), (rawHtml(" - " + String.join(" ", thr.comments()))))));
+                dd(resolveHref(file, thr.getKey()), (rawHtml((!thr.getValue().isEmpty() ? " - " : "")
+                        + String.join(" or ", thr.getValue()))))));
     }
 
     private DomContent throwsBlock(FileWithPath file, ClassElement.Method method) {

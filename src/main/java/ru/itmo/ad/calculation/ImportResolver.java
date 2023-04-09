@@ -43,7 +43,14 @@ public class ImportResolver {
         if (main.type().name().equals(value)) {
             return main;
         }
-        return file.javaFile().classes().stream()
+        var classes = file.javaFile().classes();
+        if (value.startsWith(file.javaFile().mainClass().type().name())) {
+            return file.javaFile().mainClass().classes().stream()
+                    .filter(classElement -> classElement.type().name()
+                            .equals(value.substring(file.javaFile().mainClass().type().name().length() + 1)))
+                    .findFirst().orElseThrow();
+        }
+        return classes.stream()
                 .filter(classElement -> classElement.type().name().equals(value))
                 .findFirst().orElseThrow();
     }

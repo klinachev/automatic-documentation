@@ -4,7 +4,6 @@ import ru.itmo.ad.FileWithPath;
 import ru.itmo.ad.parser.java.JavaFile;
 import ru.itmo.ad.parser.java.classes.ClassElement;
 import ru.itmo.ad.parser.java.expression.Expression;
-import ru.itmo.ad.parser.java.modifiers.Modifiers;
 import ru.itmo.ad.parser.java.types.TypeRef;
 
 import java.util.*;
@@ -80,7 +79,8 @@ public class TerminalStatesResolver {
             switch (expr) {
                 case Expression.Assign assign -> {
                     if (assign.variable().type().name().equals("var")) {
-                        Expression body1 = assign.body();
+                        TypeRef typeRef = resolveBodyStatement(assign.body());
+                        resolveVariable(names, new Expression.Variable(typeRef, assign.variable().name(), null));
                     } else {
                         resolveVariable(names, assign.variable());
                     }
@@ -104,14 +104,20 @@ public class TerminalStatesResolver {
                 }
                 case Expression.Terminal terminal -> {
                     var returnClass = importResolver.resolveClass(currentFile, currentMethod.type().name());
-                    if (terminal.name().equals("return")
-                            && (returnClass.modifiers().classType() == Modifiers.ClassType.ENUM
-                            || returnClass.modifiers().isSealed())) {
+                    if (returnClass != null) {
+                        if (terminal.body() instanceof Expression.Name name) {
+                            if (name.name().equals("null")) {
+                                addInfo(terminal, new TypeRef("null", List.of(), false), currentMethod.returnsInfo());
+                            } else {
+                                addInfo(terminal, returnClass.type(), currentMethod.returnsInfo());
+                            }
+                        } else {
+                            addInfo(terminal, returnClass.type(), currentMethod.returnsInfo());
+                        }
+                    }
+                    if (terminal.name().equals("throw") && tryLevel == 0) {
                         TypeRef typeRef = resolveBodyStatement(terminal.body());
-                        currentMethod.throwsInfo().add(new ClassElement.Info(typeRef, terminal.comments()));
-                    } else if (terminal.name().equals("throw") && tryLevel == 0) {
-                        TypeRef typeRef = resolveBodyStatement(terminal.body());
-                        currentMethod.throwsInfo().add(new ClassElement.Info(typeRef, terminal.comments()));
+                        addInfo(terminal, typeRef, currentMethod.throwsInfo());
                     }
                 }
                 case Expression.UnaryOperator unaryOperator -> {
@@ -132,6 +138,15 @@ public class TerminalStatesResolver {
             List<TypeRef> typeRefs = variables.get(name);
             typeRefs.remove(typeRefs.size() - 1);
         }
+    }
+
+    private void addInfo(Expression.Terminal terminal, TypeRef name, Map<TypeRef, List<String>> map) {
+        List<String> strings = map.get(name);
+        if (strings == null) {
+            map.put(name, new ArrayList<>(terminal.comments()));
+            return;
+        }
+        strings.addAll(terminal.comments());
     }
 
     public TypeRef resolveBodyStatement(Expression expression) {

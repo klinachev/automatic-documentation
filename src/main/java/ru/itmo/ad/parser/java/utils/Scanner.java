@@ -160,7 +160,7 @@ public class Scanner {
         if (pos == -1) {
             return null;
         }
-        var result = string.substring(pos);
+        var result = string.substring(0, pos);
         dropUntil(pos);
         return result;
     }

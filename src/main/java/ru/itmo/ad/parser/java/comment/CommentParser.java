@@ -29,6 +29,7 @@ public class CommentParser {
             sc.dropUntil(pos);
             return List.of(substring);
         }
+        var list = new ArrayList<String>();
         if (sc.takeString("/*")) {
             sc.takeString("*");
             sc.dropWhitespaces();
@@ -47,7 +48,8 @@ public class CommentParser {
                 sc.loadOrThrow(i + 1);
                 if (ch == '*' && sc.charAt(i) == '/') {
                     sc.dropUntil(i + 1);
-                    return List.of(sb.toString());
+                    list.add(sb.toString());
+                    return list;
                 }
                 sb.append(ch);
                 ch = sc.charAt(i);
@@ -62,11 +64,19 @@ public class CommentParser {
                             ch = sc.charAt(++i);
                         }
                     }
-                    while (Character.isWhitespace(ch)) {
-                        sc.loadOrThrow(i + 1);
+                    while (Character.isWhitespace(ch) && !(ch == '\n' || ch == '\r')) {
+                        sc.loadOrThrow(i + 2);
                         ch = sc.charAt(++i);
                     }
-                    sb.append(' ');
+                    if (ch == '\n' || ch == '\r') {
+                        sb.append("<p>");
+                    } else {
+                        sb.append(' ');
+                    }
+                    list.add(sb.toString());
+                    sb = new StringBuilder();
+                    sc.dropUntil(i);
+                    i = 0;
                 }
             }
         }

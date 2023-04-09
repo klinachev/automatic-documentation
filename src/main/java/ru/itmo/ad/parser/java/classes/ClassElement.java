@@ -6,9 +6,9 @@ import ru.itmo.ad.parser.java.modifiers.Modifiers;
 import ru.itmo.ad.parser.java.types.TypeRef;
 
 import java.util.ArrayList;
-import java.util.HashSet;
+import java.util.HashMap;
 import java.util.List;
-import java.util.Set;
+import java.util.Map;
 
 public sealed interface ClassElement permits ClassElement.Class, ClassElement.Field, ClassElement.Method {
     List<Annotation> annotations();
@@ -24,8 +24,8 @@ public sealed interface ClassElement permits ClassElement.Class, ClassElement.Fi
             List<Expression> body,
             List<Annotation> annotations,
             List<String> comments,
-            Set<Info> throwsInfo,
-            Set<Info> returnsInfo
+            Map<TypeRef, List<String>> throwsInfo,
+            Map<TypeRef, List<String>> returnsInfo
     ) implements ClassElement {
         public Method(TypeRef type,
                       String name,
@@ -34,12 +34,8 @@ public sealed interface ClassElement permits ClassElement.Class, ClassElement.Fi
                       List<TypeRef> throwables,
                       List<Expression> body) {
             this(type, name, modifiers, arguments, throwables,
-                    body, new ArrayList<>(), new ArrayList<>(), new HashSet<>(), new HashSet<>());
+                    body, new ArrayList<>(), new ArrayList<>(), new HashMap<>(), new HashMap<>());
         }
-    }
-
-    record Info(TypeRef type, List<String> comments) {
-
     }
 
     record Field(
